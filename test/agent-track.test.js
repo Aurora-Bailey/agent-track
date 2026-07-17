@@ -8,10 +8,26 @@ const {
 	MAX_NOTE_WORDS,
 	UsageError,
 	configFromEnv,
+	findErrorCode,
+	formatErrorMessage,
 	parseArguments,
 	parseDotEnv,
 	sendTaskAction
 } = require('../agent-track');
+
+test('formats fetch failures with a safe, actionable network error', () => {
+	const cause = Object.assign(new Error('connect ENETUNREACH 192.0.2.1:443'), {
+		code: 'ENETUNREACH'
+	});
+	const error = new TypeError('fetch failed', { cause });
+
+	assert.equal(findErrorCode(error), 'ENETUNREACH');
+	assert.equal(
+		formatErrorMessage(error),
+		'Task Monster network request failed (ENETUNREACH). Retry with external network access.'
+	);
+	assert.equal(formatErrorMessage(new Error('Task Monster rejected the request.')), 'Task Monster rejected the request.');
+});
 
 test('parses dotenv values without overriding concerns in the parser', () => {
 	assert.deepEqual(

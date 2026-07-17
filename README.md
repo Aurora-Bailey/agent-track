@@ -65,6 +65,8 @@ agent-track stop "$TASK_ID" "Concise note describing the completed work and veri
 
 The task ID is an ordinary CLI argument. The bearer token stays inside the ignored `.env` file and is never included in command output.
 
+If the command reports a Task Monster network failure, retry the same command with the execution environment's approved external-network escalation. The diagnostic may include a network error code such as `ENETUNREACH`, but it never prints the configured endpoint or bearer token.
+
 ## Install the terminal command
 
 Make the script executable and link it into a directory already on `PATH`:

@@ -18,7 +18,9 @@ Immediately after reading this section, start tracking before repository inspect
    agent-track start "<task-id-from-marker>"
    ```
 
-The call is mandatory. If the marker is missing, ambiguous, or malformed, or if `agent-track start` fails, record the failure, continue the requested repository work, and include a tracking warning in the final response.
+The call is mandatory. If the marker is missing, ambiguous, or malformed, or if `agent-track start` ultimately fails after the permitted retry below, record the failure, continue the requested repository work, and include a tracking warning in the final response.
+
+If `agent-track start` fails for a network-related reason such as `fetch failed` or `Task Monster network request failed`, immediately retry the same command with escalated network privileges and an explicit approval request. This network escalation is authorized. Use the same marker-derived task ID. Do not escalate malformed markers, invalid command arguments, or other non-network failures. Only record a startup failure and warn in the final response if the normal and escalated attempts both fail.
 
 ## Closing goodbye: the final action
 
@@ -32,6 +34,8 @@ Before every normal final response, including completed work, no-op answers, pla
    agent-track stop "<task-id-from-marker>" "<summary note>"
    ```
 
-4. After the stop attempt, perform no more tool calls or external actions. Send only the already-composed final response. If marker resolution, startup, or stopping failed, append an explicit warning that tracking may be incomplete.
+4. After the stop attempt sequence described below, perform no more tool calls or external actions. Send only the already-composed final response. If marker resolution, startup, or stopping failed, append an explicit warning that tracking may be incomplete.
+
+If `agent-track stop` fails for a network-related reason such as `fetch failed` or `Task Monster network request failed`, immediately retry the same command with escalated network privileges and an explicit approval request. This network escalation is authorized. Reuse the same task ID and exactly the same composed summary note. Do not escalate malformed markers, invalid command arguments, or other non-network failures. The normal call and its one permitted network retry together form the stop attempt; after that sequence, perform no more tool calls or external actions.
 
 If startup failed after resolving a valid task ID, still attempt the normal stop call. The marker filename and task ID are not secrets and must remain committed. Never read project `.env` files for agent tracking or call Task Monster endpoints directly; `agent-track` owns credentials and transport.

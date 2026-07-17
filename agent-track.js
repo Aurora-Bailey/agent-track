@@ -24,6 +24,36 @@ Examples:
 class UsageError extends Error {}
 class ConfigError extends Error {}
 
+function findErrorCode(error) {
+	const pending = [error];
+	const seen = new Set();
+
+	while (pending.length > 0) {
+		const current = pending.shift();
+		if (!current || (typeof current !== 'object' && typeof current !== 'function')) continue;
+		if (seen.has(current)) continue;
+		seen.add(current);
+
+		if (typeof current.code === 'string' && /^[A-Z][A-Z0-9_]+$/u.test(current.code)) {
+			return current.code;
+		}
+
+		if (current.cause) pending.push(current.cause);
+		if (Array.isArray(current.errors)) pending.push(...current.errors);
+	}
+
+	return null;
+}
+
+function formatErrorMessage(error) {
+	const message = typeof error?.message === 'string' ? error.message : 'Unknown error.';
+	if (message !== 'fetch failed') return message;
+
+	const code = findErrorCode(error);
+	const detail = code ? ` (${code})` : '';
+	return `Task Monster network request failed${detail}. Retry with external network access.`;
+}
+
 function parseDotEnv(contents) {
 	const values = {};
 
@@ -293,14 +323,14 @@ async function main() {
 		const verb = parsed.command === 'start' ? 'Started' : 'Stopped';
 		console.log(`${verb} task ${parsed.taskId}.`);
 	} catch (error) {
-		console.error(`agent-track: ${error.message}`);
+		console.error(`agent-track: ${formatErrorMessage(error)}`);
 		process.exitCode = 1;
 	}
 }
 
 if (require.main === module) {
 	main().catch((error) => {
-		console.error(`agent-track: ${error.message}`);
+		console.error(`agent-track: ${formatErrorMessage(error)}`);
 		process.exitCode = 1;
 	});
 }
@@ -310,6 +340,8 @@ module.exports = {
 	MAX_NOTE_WORDS,
 	UsageError,
 	configFromEnv,
+	findErrorCode,
+	formatErrorMessage,
 	loadLocalEnv,
 	normalizeNote,
 	parseArguments,
