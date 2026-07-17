@@ -1,0 +1,16 @@
+{
+	"name": "agent-track",
+	"version": "1.0.0",
+	"private": true,
+	"description": "Start and stop Task Monster tasks without exposing bearer tokens to agents.",
+	"bin": {
+		"agent-track": "./agent-track.js"
+	},
+	"scripts": {
+		"check": "node --check agent-track.js",
+		"test": "node --test"
+	},
+	"engines": {
+		"node": ">=20"
+	}
+}
