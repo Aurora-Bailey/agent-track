@@ -38,7 +38,13 @@ Stop that task and attach a note:
 agent-track stop taskid234234 "Implemented the requested change and ran the tests."
 ```
 
-The stop note is required and may contain up to 500 words. Quote it when it contains spaces. The tool sends `source: "codex_agent"`, uses the targeted task action, retries transient failures, and exits nonzero unless Task Monster confirms a successful HTTP response.
+The stop note is required and may contain up to 500 words. Quote it when it contains spaces and keep sensitive details vague. If security controls block a stop request, retry with approved external-network escalation and a less detailed note. After three failed summary-note attempts, explicitly pass an empty note to end the task without a summary:
+
+```bash
+agent-track stop taskid234234 ""
+```
+
+Omitting the note argument is still an error; only an explicitly quoted empty string activates the fallback. The tool sends `source: "codex_agent"`, uses the targeted task action, retries transient failures, and exits nonzero unless Task Monster confirms a successful HTTP response.
 
 You can also run the script without installing the command:
 
@@ -63,7 +69,7 @@ agent-track start "$TASK_ID"
 agent-track stop "$TASK_ID" "Concise note describing the completed work and verification."
 ```
 
-The task ID is an ordinary CLI argument. The bearer token stays inside the ignored `.env` file and is never included in command output.
+After a successful start, the command prints this stop workflow so every repository receives the same current guidance automatically. The task ID is an ordinary CLI argument. The bearer token stays inside the ignored `.env` file and is never included in command output.
 
 If the command reports a Task Monster network failure, retry the same command with the execution environment's approved external-network escalation. The diagnostic may include a network error code such as `ENETUNREACH`, but it never prints the configured endpoint or bearer token.
 

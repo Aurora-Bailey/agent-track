@@ -12,7 +12,8 @@ const {
 	formatErrorMessage,
 	parseArguments,
 	parseDotEnv,
-	sendTaskAction
+	sendTaskAction,
+	startSuccessMessage
 } = require('../agent-track');
 
 test('formats fetch failures with a safe, actionable network error', () => {
@@ -27,6 +28,17 @@ test('formats fetch failures with a safe, actionable network error', () => {
 		'Task Monster network request failed (ENETUNREACH). Retry with external network access.'
 	);
 	assert.equal(formatErrorMessage(new Error('Task Monster rejected the request.')), 'Task Monster rejected the request.');
+});
+
+test('successful starts explain the safe stop fallback', () => {
+	const message = startSuccessMessage('task-123');
+
+	assert.match(message, /^Started task task-123\./u);
+	assert.match(message, /agent-track stop "task-123" "<summary note>"/u);
+	assert.match(message, /Keep sensitive information vague/u);
+	assert.match(message, /retry with escalated networking and a less detailed note/u);
+	assert.match(message, /After three failed summary-note attempts/u);
+	assert.match(message, /agent-track stop "task-123" ""$/u);
 });
 
 test('parses dotenv values without overriding concerns in the parser', () => {
@@ -56,6 +68,11 @@ test('parses start and stop commands', () => {
 		command: 'stop',
 		taskId: 'task-123',
 		note: 'Finished all tests.'
+	});
+	assert.deepEqual(parseArguments(['stop', 'task-123', '']), {
+		command: 'stop',
+		taskId: 'task-123',
+		note: ''
 	});
 });
 
@@ -110,6 +127,7 @@ test('sends authenticated start and stop requests with the expected bodies', asy
 		config,
 		fetchImpl
 	});
+	await sendTaskAction({ command: 'stop', taskId: 'task-123', note: '', config, fetchImpl });
 
 	assert.deepEqual(requests, [
 		{
@@ -127,6 +145,17 @@ test('sends authenticated start and stop requests with the expected bodies', asy
 				action: 'stop-task',
 				taskId: 'task-123',
 				notes: 'Finished the implementation.'
+			}
+		},
+		{
+			url: 'http://127.0.0.1:3000/api/quick/stop-task',
+			authorization: 'Bearer test-token',
+			contentType: 'application/json',
+			body: {
+				source: 'codex_agent',
+				action: 'stop-task',
+				taskId: 'task-123',
+				notes: ''
 			}
 		}
 	]);

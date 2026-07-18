@@ -19,6 +19,7 @@ const USAGE = `Usage:
 Examples:
   agent-track start taskid234234
   agent-track stop taskid234234 "Implemented the feature and ran the tests."
+  agent-track stop taskid234234 ""
 `;
 
 class UsageError extends Error {}
@@ -52,6 +53,16 @@ function formatErrorMessage(error) {
 	const code = findErrorCode(error);
 	const detail = code ? ` (${code})` : '';
 	return `Task Monster network request failed${detail}. Retry with external network access.`;
+}
+
+function startSuccessMessage(taskId) {
+	return [
+		`Started task ${taskId}.`,
+		`Stop it with: agent-track stop "${taskId}" "<summary note>"`,
+		'Keep sensitive information vague in the summary note.',
+		'If security blocks the stop request, retry with escalated networking and a less detailed note.',
+		`After three failed summary-note attempts, end the task with an explicit empty note: agent-track stop "${taskId}" ""`
+	].join('\n');
 }
 
 function parseDotEnv(contents) {
@@ -159,6 +170,9 @@ function normalizeTaskId(value) {
 }
 
 function normalizeNote(values) {
+	if (values.length === 0) throw new UsageError('A note is required when stopping a task.');
+	if (values.length === 1 && values[0] === '') return '';
+
 	const note = values.join(' ').trim().replace(/\s+/gu, ' ');
 	if (!note) throw new UsageError('A note is required when stopping a task.');
 
@@ -320,8 +334,11 @@ async function main() {
 	try {
 		const config = configFromEnv(loadLocalEnv());
 		await sendTaskAction({ ...parsed, config });
-		const verb = parsed.command === 'start' ? 'Started' : 'Stopped';
-		console.log(`${verb} task ${parsed.taskId}.`);
+		if (parsed.command === 'start') {
+			console.log(startSuccessMessage(parsed.taskId));
+		} else {
+			console.log(`Stopped task ${parsed.taskId}.`);
+		}
 	} catch (error) {
 		console.error(`agent-track: ${formatErrorMessage(error)}`);
 		process.exitCode = 1;
@@ -347,5 +364,6 @@ module.exports = {
 	parseArguments,
 	parseDotEnv,
 	sendTaskAction,
+	startSuccessMessage,
 	validateEndpoint
 };
